@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="../GiftShuffle.Application/GiftShuffle.Application.csproj" />
+  <Project Path="../GiftShuffle.Domain/GiftShuffle.Domain.csproj" />
+  <Project Path="../GiftShuffle.Infraestructure/GiftShuffle.Infraestructure.csproj" />
+  <Project Path="GiftShuffle.Api.csproj" />
+</Solution>
