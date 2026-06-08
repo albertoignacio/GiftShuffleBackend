@@ -8,7 +8,7 @@ Clean Architecture (.NET 10) API — Secret Santa / Amigo Invisible.
 GiftShuffle.Domain/             → Entities only (Friend, ShuffleHistory). Zero external packages.
 GiftShuffle.Application/        → Interfaces, DTOs (records), Service implementations.
 GiftShuffle.Infraestructure/    → EF Core SQLite, Identity (AppUser), MailKit, JWT, Repository impls.
-GiftShuffle.Api/                → Controllers, Program.cs (DI + middleware).
+GiftShuffle.Api/                → Controllers, Program.cs (DI + middleware). (Folder renamed from GiftShuffle to GiftShuffle.Api)
 ```
 
 Dependency direction: `Api → Infrastructure → Application → Domain`
@@ -16,7 +16,7 @@ Dependency direction: `Api → Infrastructure → Application → Domain`
 ## Commands
 
 - `dotnet build GiftShuffle.slnx` — build all 4 projects (uses `.slnx` format, not `.sln`)
-- `dotnet run --project GiftShuffle` — run API
+- `dotnet run --project GiftShuffle.Api` — run API
 - SQLite DB auto-created on first run via `db.Database.EnsureCreated()`
 
 ## Auth
