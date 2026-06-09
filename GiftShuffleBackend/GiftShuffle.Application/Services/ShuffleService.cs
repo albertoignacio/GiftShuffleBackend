@@ -1,37 +1,28 @@
-﻿using GiftShuffle.Application.DTOs;
+using GiftShuffle.Application.DTOs;
 using GiftShuffle.Application.Interfaces;
 using GiftShuffle.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace GiftShuffle.Application.Services;
 
-public class ShuffleService : IShuffleService
+public class ShuffleService(
+    IFriendRepository friendRepository,
+    IShuffleHistoryRepository historyRepository,
+    IEmailService emailService,
+    ILogger<ShuffleService> logger) : IShuffleService
 {
-    private readonly IFriendRepository _friendRepository;
-    private readonly IShuffleHistoryRepository _historyRepository;
-    private readonly IEmailService _emailService;
-
-    public ShuffleService(
-        IFriendRepository friendRepository,
-        IShuffleHistoryRepository historyRepository,
-        IEmailService emailService)
-    {
-        _friendRepository = friendRepository;
-        _historyRepository = historyRepository;
-        _emailService = emailService;
-    }
-
-    public async Task<ShuffleResponse> ExecuteShuffleAsync(Guid userId, ShuffleRequest request)
+    public async Task<ShuffleResponse> ExecuteShuffleAsync(Guid userId, ShuffleRequest request, CancellationToken ct = default)
     {
         if (request.FriendIds.Count < 2)
             throw new InvalidOperationException("At least 2 participants are required");
 
-        var friends = await _friendRepository.GetByUserIdAsync(userId);
+        var friends = await friendRepository.GetByUserIdAsync(userId, ct);
         var selected = friends.Where(f => request.FriendIds.Contains(f.Id)).ToList();
 
         if (selected.Count != request.FriendIds.Count)
             throw new KeyNotFoundException("One or more friends not found");
 
-        var previous = await _historyRepository.GetByUserIdAsync(userId);
+        var previous = await historyRepository.GetByUserIdAsync(userId, ct);
         var previousPairs = previous
             .Select(h => (h.GiverFriendId, h.ReceiverFriendId))
             .ToHashSet();
@@ -47,13 +38,17 @@ public class ShuffleService : IShuffleService
             ShuffleDate = DateTime.UtcNow
         }).ToList();
 
-        await _historyRepository.AddRangeAsync(histories);
+        await historyRepository.AddRangeAsync(histories, ct);
 
         foreach (var (giver, receiver) in assignment)
         {
-            await _emailService.SendAssignmentEmailAsync(
-                giver.Email, giver.Name, receiver.Name, request.GiftAmount);
+            await emailService.SendAssignmentEmailAsync(
+                giver.Email, giver.Name, receiver.Name, request.GiftAmount, ct);
         }
+
+        logger.LogInformation(
+            "Shuffle executed for user {UserId}: {Count} participants, amount {Amount}",
+            userId, selected.Count, request.GiftAmount);
 
         return new ShuffleResponse(true, selected.Count, request.GiftAmount);
     }

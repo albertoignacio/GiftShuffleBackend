@@ -1,32 +1,27 @@
-﻿using GiftShuffle.Application.DTOs;
+using GiftShuffle.Application.DTOs;
 using GiftShuffle.Application.Interfaces;
 using GiftShuffle.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace GiftShuffle.Application.Services;
 
-public class FriendService : IFriendService
+public class FriendService(IFriendRepository repository, ILogger<FriendService> logger) : IFriendService
 {
-    private readonly IFriendRepository _repository;
-
-    public FriendService(IFriendRepository repository)
+    public async Task<List<FriendResponse>> GetAllAsync(Guid userId, CancellationToken ct = default)
     {
-        _repository = repository;
-    }
-
-    public async Task<List<FriendResponse>> GetAllAsync(Guid userId)
-    {
-        var friends = await _repository.GetByUserIdAsync(userId);
+        var friends = await repository.GetByUserIdAsync(userId, ct);
+        logger.LogInformation("Retrieved {Count} friends for user {UserId}", friends.Count, userId);
         return friends.Select(f => new FriendResponse(f.Id, f.Name, f.LastName, f.Email)).ToList();
     }
 
-    public async Task<FriendResponse?> GetByIdAsync(Guid id, Guid userId)
+    public async Task<FriendResponse?> GetByIdAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
-        var friend = await _repository.GetByIdAsync(id);
+        var friend = await repository.GetByIdAsync(id, ct);
         if (friend == null || friend.UserId != userId) return null;
         return new FriendResponse(friend.Id, friend.Name, friend.LastName, friend.Email);
     }
 
-    public async Task<FriendResponse> CreateAsync(Guid userId, CreateFriendRequest request)
+    public async Task<FriendResponse> CreateAsync(Guid userId, CreateFriendRequest request, CancellationToken ct = default)
     {
         var friend = new Friend
         {
@@ -37,13 +32,14 @@ public class FriendService : IFriendService
             Email = request.Email
         };
 
-        var created = await _repository.CreateAsync(friend);
+        var created = await repository.CreateAsync(friend, ct);
+        logger.LogInformation("Created friend {FriendId} for user {UserId}", created.Id, userId);
         return new FriendResponse(created.Id, created.Name, created.LastName, created.Email);
     }
 
-    public async Task<FriendResponse> UpdateAsync(Guid id, Guid userId, UpdateFriendRequest request)
+    public async Task<FriendResponse> UpdateAsync(Guid id, Guid userId, UpdateFriendRequest request, CancellationToken ct = default)
     {
-        var friend = await _repository.GetByIdAsync(id);
+        var friend = await repository.GetByIdAsync(id, ct);
         if (friend == null || friend.UserId != userId)
             throw new KeyNotFoundException("Friend not found");
 
@@ -51,16 +47,18 @@ public class FriendService : IFriendService
         friend.LastName = request.LastName;
         friend.Email = request.Email;
 
-        var updated = await _repository.UpdateAsync(friend);
+        var updated = await repository.UpdateAsync(friend, ct);
+        logger.LogInformation("Updated friend {FriendId} for user {UserId}", id, userId);
         return new FriendResponse(updated.Id, updated.Name, updated.LastName, updated.Email);
     }
 
-    public async Task DeleteAsync(Guid id, Guid userId)
+    public async Task DeleteAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
-        var friend = await _repository.GetByIdAsync(id);
+        var friend = await repository.GetByIdAsync(id, ct);
         if (friend == null || friend.UserId != userId)
             throw new KeyNotFoundException("Friend not found");
 
-        await _repository.DeleteAsync(friend);
+        await repository.DeleteAsync(friend, ct);
+        logger.LogInformation("Deleted friend {FriendId} for user {UserId}", id, userId);
     }
 }

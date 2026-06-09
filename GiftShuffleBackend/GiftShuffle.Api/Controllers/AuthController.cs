@@ -1,4 +1,4 @@
-ï»¿using GiftShuffle.Application.DTOs;
+using GiftShuffle.Application.DTOs;
 using GiftShuffle.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,40 +6,26 @@ namespace GiftShuffle.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController : ControllerBase
+[Tags("Auth")]
+public class AuthController(IAuthService authService) : ControllerBase
 {
-    private readonly IAuthService _authService;
-
-    public AuthController(IAuthService authService)
-    {
-        _authService = authService;
-    }
-
     [HttpPost("register")]
+    [EndpointSummary("Registra un nuevo usuario")]
+    [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
     {
-        try
-        {
-            var response = await _authService.RegisterAsync(request);
-            return Ok(response);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var response = await authService.RegisterAsync(request);
+        return Ok(response);
     }
 
     [HttpPost("login")]
+    [EndpointSummary("Inicia sesión y devuelve un token JWT")]
+    [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
     {
-        try
-        {
-            var response = await _authService.LoginAsync(request);
-            return Ok(response);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { error = ex.Message });
-        }
+        var response = await authService.LoginAsync(request);
+        return Ok(response);
     }
 }

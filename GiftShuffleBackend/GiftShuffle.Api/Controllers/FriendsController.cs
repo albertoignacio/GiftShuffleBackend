@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using GiftShuffle.Application.DTOs;
 using GiftShuffle.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -9,65 +9,65 @@ namespace GiftShuffle.Api.Controllers;
 [ApiController]
 [Route("api/friends")]
 [Authorize]
-public class FriendsController : ControllerBase
+[Tags("Friends")]
+public class FriendsController(IFriendService friendService) : ControllerBase
 {
-    private readonly IFriendService _friendService;
-
-    public FriendsController(IFriendService friendService)
-    {
-        _friendService = friendService;
-    }
-
     private Guid GetUserId() =>
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    [HttpGet]
-    public async Task<ActionResult<List<FriendResponse>>> GetAll()
+    [HttpGet("getAll")]
+    [EndpointSummary("Obtiene todos los amigos del usuario autenticado")]
+    [ProducesResponseType<List<FriendResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<List<FriendResponse>>> GetAll(CancellationToken ct)
     {
-        var friends = await _friendService.GetAllAsync(GetUserId());
+        var friends = await friendService.GetAllAsync(GetUserId(), ct);
         return Ok(friends);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<FriendResponse>> GetById(Guid id)
+    [EndpointSummary("Obtiene un amigo por su ID")]
+    [ProducesResponseType<FriendResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FriendResponse>> GetById(Guid id, CancellationToken ct)
     {
-        var friend = await _friendService.GetByIdAsync(id, GetUserId());
+        var friend = await friendService.GetByIdAsync(id, GetUserId(), ct);
         if (friend == null) return NotFound();
         return Ok(friend);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<FriendResponse>> Create([FromBody] CreateFriendRequest request)
+    [HttpPost("create")]
+    [EndpointSummary("Crea un nuevo amigo")]
+    [ProducesResponseType<FriendResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<FriendResponse>> Create([FromBody] CreateFriendRequest request, CancellationToken ct)
     {
-        var friend = await _friendService.CreateAsync(GetUserId(), request);
+        var friend = await friendService.CreateAsync(GetUserId(), request, ct);
         return CreatedAtAction(nameof(GetById), new { id = friend.Id }, friend);
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<FriendResponse>> Update(Guid id, [FromBody] UpdateFriendRequest request)
+    [EndpointSummary("Actualiza los datos de un amigo")]
+    [ProducesResponseType<FriendResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FriendResponse>> Update(Guid id, [FromBody] UpdateFriendRequest request, CancellationToken ct)
     {
-        try
-        {
-            var friend = await _friendService.UpdateAsync(id, GetUserId(), request);
-            return Ok(friend);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
+        var friend = await friendService.UpdateAsync(id, GetUserId(), request, ct);
+        return Ok(friend);
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(Guid id)
+    [EndpointSummary("Elimina un amigo")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Delete(Guid id, CancellationToken ct)
     {
-        try
-        {
-            await _friendService.DeleteAsync(id, GetUserId());
-            return NoContent();
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
+        await friendService.DeleteAsync(id, GetUserId(), ct);
+        return NoContent();
     }
 }

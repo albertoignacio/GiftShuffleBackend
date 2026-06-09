@@ -1,28 +1,21 @@
 using GiftShuffle.Application.Interfaces;
+using GiftShuffle.Infraestructure.Options;
 using MailKit.Net.Smtp;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MimeKit;
 
 namespace GiftShuffle.Infraestructure.Services;
 
-public class EmailService : IEmailService
+public class EmailService(IOptions<SmtpOptions> smtpOptions, ILogger<EmailService> logger) : IEmailService
 {
-    private readonly IConfiguration _configuration;
+    private readonly SmtpOptions _smtp = smtpOptions.Value;
 
-    public EmailService(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
-
-    public async Task SendAssignmentEmailAsync(string toEmail, string toName, string receiverName, decimal giftAmount)
+    public async Task SendAssignmentEmailAsync(string toEmail, string toName, string receiverName, decimal giftAmount, CancellationToken ct = default)
     {
         var message = new MimeMessage();
-        var username = _configuration["Smtp:Username"]!;
-        var host = _configuration["Smtp:Host"]!;
-        var port = int.Parse(_configuration["Smtp:Port"] ?? "587");
-        var password = _configuration["Smtp:Password"]!;
 
-        message.From.Add(new MailboxAddress("Gift Shuffle", username));
+        message.From.Add(new MailboxAddress("Gift Shuffle", _smtp.Username));
         message.To.Add(new MailboxAddress(toName, toEmail));
         message.Subject = "Tu amigo invisible ha sido asignado";
 
@@ -30,16 +23,16 @@ public class EmailService : IEmailService
         {
             Text = $"Hola {toName}!\n\n" +
                    $"Te ha tocado regalarle a: {receiverName}\n" +
-                   $"Monto sugerido: ${giftAmount:F2}\n\n" +
-                   "Â¡Feliz intercambio!"
+                   $"Monto sugerido: \n\n" +
+                   "¡Feliz intercambio!"
         };
 
         using var client = new SmtpClient();
-        await client.ConnectAsync(host, port, MailKit.Security.SecureSocketOptions.StartTls);
+        await client.ConnectAsync(_smtp.Host, _smtp.Port, MailKit.Security.SecureSocketOptions.StartTls, ct);
+        await client.AuthenticateAsync(_smtp.Username, _smtp.Password, ct);
+        await client.SendAsync(message, ct);
+        await client.DisconnectAsync(true, ct);
 
-        await client.AuthenticateAsync(username, password);
-
-        await client.SendAsync(message);
-        await client.DisconnectAsync(true);
+        logger.LogInformation("Email sent to {Email} about {Receiver}", toEmail, receiverName);
     }
 }

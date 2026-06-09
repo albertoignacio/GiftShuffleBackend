@@ -4,26 +4,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GiftShuffle.Infraestructure.Data;
 
-public class ShuffleHistoryRepository : IShuffleHistoryRepository
+public class ShuffleHistoryRepository(AppDbContext context) : IShuffleHistoryRepository
 {
-    private readonly AppDbContext _context;
-
-    public ShuffleHistoryRepository(AppDbContext context)
+    public async Task<List<ShuffleHistory>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
-        _context = context;
-    }
-
-    public async Task<List<ShuffleHistory>> GetByUserIdAsync(Guid userId)
-    {
-        return await _context.ShuffleHistories
+        return await context.ShuffleHistories
             .Where(h => h.UserId == userId)
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
-    public async Task AddRangeAsync(List<ShuffleHistory> histories)
+    public async Task AddRangeAsync(List<ShuffleHistory> histories, CancellationToken ct = default)
     {
-        _context.ShuffleHistories.AddRange(histories);
-        await _context.SaveChangesAsync();
+        context.ShuffleHistories.AddRange(histories);
+        await context.SaveChangesAsync(ct);
     }
 }

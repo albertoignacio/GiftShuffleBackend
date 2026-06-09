@@ -2,28 +2,19 @@ using GiftShuffle.Application.DTOs;
 using GiftShuffle.Application.Interfaces;
 using GiftShuffle.Infraestructure.Identity;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 namespace GiftShuffle.Infraestructure.Services;
 
-public class AuthService : IAuthService
+public class AuthService(
+    UserManager<AppUser> userManager,
+    SignInManager<AppUser> signInManager,
+    IJwtService jwtService,
+    ILogger<AuthService> logger) : IAuthService
 {
-    private readonly UserManager<AppUser> _userManager;
-    private readonly SignInManager<AppUser> _signInManager;
-    private readonly IJwtService _jwtService;
-
-    public AuthService(
-        UserManager<AppUser> userManager,
-        SignInManager<AppUser> signInManager,
-        IJwtService jwtService)
-    {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _jwtService = jwtService;
-    }
-
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
-        var existing = await _userManager.FindByEmailAsync(request.Email);
+        var existing = await userManager.FindByEmailAsync(request.Email);
         if (existing != null)
             throw new InvalidOperationException("Email already registered");
 
@@ -35,30 +26,34 @@ public class AuthService : IAuthService
             LastName = request.LastName
         };
 
-        var result = await _userManager.CreateAsync(user, request.Password);
+        var result = await userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
             throw new InvalidOperationException(
                 string.Join(", ", result.Errors.Select(e => e.Description)));
 
-        var token = _jwtService.GenerateToken(new TokenUserInfo(
-            user.Id, user.Name, user.LastName, user.Email!));
+        var email = user.Email ?? request.Email;
+        var token = jwtService.GenerateToken(new TokenUserInfo(
+            user.Id, user.Name, user.LastName, email));
 
-        return new AuthResponse(token, user.Name, user.LastName, user.Email!);
+        logger.LogInformation("User registered: {Email}", request.Email);
+        return new AuthResponse(token, user.Name, user.LastName, email);
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var user = await userManager.FindByEmailAsync(request.Email);
         if (user == null)
             throw new UnauthorizedAccessException("Invalid credentials");
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
+        var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, false);
         if (!result.Succeeded)
             throw new UnauthorizedAccessException("Invalid credentials");
 
-        var token = _jwtService.GenerateToken(new TokenUserInfo(
-            user.Id, user.Name, user.LastName, user.Email!));
+        var email = user.Email ?? request.Email;
+        var token = jwtService.GenerateToken(new TokenUserInfo(
+            user.Id, user.Name, user.LastName, email));
 
-        return new AuthResponse(token, user.Name, user.LastName, user.Email!);
+        logger.LogInformation("User logged in: {Email}", request.Email);
+        return new AuthResponse(token, user.Name, user.LastName, email);
     }
 }
