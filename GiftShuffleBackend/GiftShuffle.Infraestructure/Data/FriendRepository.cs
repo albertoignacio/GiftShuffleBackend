@@ -4,45 +4,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GiftShuffle.Infraestructure.Data;
 
-public class FriendRepository : IFriendRepository
+public class FriendRepository(AppDbContext context) : IFriendRepository
 {
-    private readonly AppDbContext _context;
-
-    public FriendRepository(AppDbContext context)
+    public async Task<List<Friend>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
-        _context = context;
-    }
-
-    public async Task<List<Friend>> GetByUserIdAsync(Guid userId)
-    {
-        return await _context.Friends
+        return await context.Friends
             .Where(f => f.UserId == userId)
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
-    public async Task<Friend?> GetByIdAsync(Guid id)
+    public async Task<Friend?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.Friends.FindAsync(id);
+        return await context.Friends.FindAsync([id], ct);
     }
 
-    public async Task<Friend> CreateAsync(Friend friend)
+    public async Task<Friend> CreateAsync(Friend friend, CancellationToken ct = default)
     {
-        _context.Friends.Add(friend);
-        await _context.SaveChangesAsync();
+        context.Friends.Add(friend);
+        await context.SaveChangesAsync(ct);
         return friend;
     }
 
-    public async Task<Friend> UpdateAsync(Friend friend)
+    public async Task<Friend> UpdateAsync(Friend friend, CancellationToken ct = default)
     {
-        _context.Friends.Update(friend);
-        await _context.SaveChangesAsync();
+        context.Friends.Update(friend);
+        await context.SaveChangesAsync(ct);
         return friend;
     }
 
-    public async Task DeleteAsync(Friend friend)
+    public async Task DeleteAsync(Friend friend, CancellationToken ct = default)
     {
-        _context.Friends.Remove(friend);
-        await _context.SaveChangesAsync();
+        context.Friends.Remove(friend);
+        await context.SaveChangesAsync(ct);
     }
 }

@@ -9,33 +9,21 @@ namespace GiftShuffle.Api.Controllers;
 [ApiController]
 [Route("api/shuffle")]
 [Authorize]
-public class ShuffleController : ControllerBase
+[Tags("Shuffle")]
+public class ShuffleController(IShuffleService shuffleService) : ControllerBase
 {
-    private readonly IShuffleService _shuffleService;
-
-    public ShuffleController(IShuffleService shuffleService)
-    {
-        _shuffleService = shuffleService;
-    }
-
     private Guid GetUserId() =>
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpPost]
-    public async Task<ActionResult<ShuffleResponse>> ExecuteShuffle([FromBody] ShuffleRequest request)
+    [EndpointSummary("Ejecuta el sorteo de amigo invisible")]
+    [ProducesResponseType<ShuffleResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ShuffleResponse>> ExecuteShuffle([FromBody] ShuffleRequest request, CancellationToken ct)
     {
-        try
-        {
-            var response = await _shuffleService.ExecuteShuffleAsync(GetUserId(), request);
-            return Ok(response);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
+        var response = await shuffleService.ExecuteShuffleAsync(GetUserId(), request, ct);
+        return Ok(response);
     }
 }
