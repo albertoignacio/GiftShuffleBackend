@@ -361,3 +361,17 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
+# opencode auto-downloaded skills
+.agents/
+
+# Skills lock file (keep tracked)
+!skills-lock.json
+
+# Editor folders
+.vscode/
+.idea/
