@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using GiftShuffle.Application.DTOs;
 using GiftShuffle.Application.Interfaces;
 using GiftShuffle.Application.Services;
@@ -86,7 +86,6 @@ public class ShuffleServiceTests
         _historyRepo.Setup(r => r.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        // Capture saved histories
         List<ShuffleHistory>? saved = null;
         _historyRepo.Setup(r => r.AddRangeAsync(It.IsAny<List<ShuffleHistory>>(), It.IsAny<CancellationToken>()))
             .Callback<List<ShuffleHistory>, CancellationToken>((h, _) => saved = h);
@@ -96,7 +95,6 @@ public class ShuffleServiceTests
         saved.Should().NotBeNull();
         saved!.Should().HaveCount(10);
 
-        // Verify no giver == receiver
         foreach (var h in saved)
         {
             h.GiverFriendId.Should().NotBe(h.ReceiverFriendId);
@@ -123,7 +121,6 @@ public class ShuffleServiceTests
 
         saved.Should().NotBeNull();
 
-        // Each participant appears exactly once as giver and once as receiver
         var givers = saved!.Select(h => h.GiverFriendId);
         var receivers = saved.Select(h => h.ReceiverFriendId);
 
@@ -138,7 +135,6 @@ public class ShuffleServiceTests
         var friends = CreateFriends(userId, 3);
         var request = new ShuffleRequest(friends.Select(f => f.Id).ToList(), 50m);
 
-        // Block A?B pair
         var history = new List<ShuffleHistory>
         {
             new() { Id = Guid.NewGuid(), UserId = userId, GiverFriendId = friends[0].Id, ReceiverFriendId = friends[1].Id, ShuffleDate = DateTime.UtcNow }
@@ -156,9 +152,113 @@ public class ShuffleServiceTests
         await _sut.ExecuteShuffleAsync(userId, request);
 
         saved.Should().NotBeNull();
-        // A should NOT give to B
         saved!.Any(h => h.GiverFriendId == friends[0].Id && h.ReceiverFriendId == friends[1].Id)
             .Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ExecuteShuffleAsync_WhenHistoryBlocksAllPairs_FallsBackAndSucceeds()
+    {
+        var userId = Guid.NewGuid();
+        var friends = CreateFriends(userId, 3);
+        var request = new ShuffleRequest(friends.Select(f => f.Id).ToList(), 50m);
+
+        // Block every possible (giver, receiver) pair so no rotation works with exclusions
+        var history = new List<ShuffleHistory>();
+        foreach (var giver in friends)
+        {
+            foreach (var receiver in friends.Where(r => r.Id != giver.Id))
+            {
+                history.Add(new()
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    GiverFriendId = giver.Id,
+                    ReceiverFriendId = receiver.Id,
+                    ShuffleDate = DateTime.UtcNow
+                });
+            }
+        }
+
+        _friendRepo.Setup(r => r.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(friends);
+        _historyRepo.Setup(r => r.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(history);
+
+        List<ShuffleHistory>? saved = null;
+        _historyRepo.Setup(r => r.AddRangeAsync(It.IsAny<List<ShuffleHistory>>(), It.IsAny<CancellationToken>()))
+            .Callback<List<ShuffleHistory>, CancellationToken>((h, _) => saved = h);
+
+        var result = await _sut.ExecuteShuffleAsync(userId, request);
+
+        result.Shuffled.Should().BeTrue();
+        result.ParticipantCount.Should().Be(3);
+
+        saved.Should().NotBeNull();
+        saved!.Should().HaveCount(3);
+        // No one gives to self (fallback still enforces this)
+        foreach (var h in saved)
+        {
+            h.GiverFriendId.Should().NotBe(h.ReceiverFriendId);
+        }
+    }
+
+    [Fact]
+    public async Task ClearHistoryAsync_CallsDeleteByUserId()
+    {
+        var userId = Guid.NewGuid();
+
+        _historyRepo.Setup(r => r.DeleteByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await _sut.ClearHistoryAsync(userId);
+
+        _historyRepo.Verify(r => r.DeleteByUserIdAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteShuffleAsync_WithIncludeCurrentUser_CountIncludesUser()
+    {
+        var userId = Guid.NewGuid();
+        var friends = CreateFriends(userId, 3);
+        var request = new ShuffleRequest(friends.Select(f => f.Id).ToList(), 50m, IncludeCurrentUser: true);
+
+        _friendRepo.Setup(r => r.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(friends);
+        _historyRepo.Setup(r => r.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var result = await _sut.ExecuteShuffleAsync(userId, request,
+            currentUserName: "Yo", currentUserLastName: "Mismo", currentUserEmail: "yo@test.com");
+
+        result.Shuffled.Should().BeTrue();
+        result.ParticipantCount.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task ExecuteShuffleAsync_IncludeCurrentUserWithoutFriends_Fails()
+    {
+        var userId = Guid.NewGuid();
+        var friend = CreateFriend(userId, "Solo");
+        var request = new ShuffleRequest([friend.Id], 50m, IncludeCurrentUser: true);
+
+        _friendRepo.Setup(r => r.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([friend]);
+        _historyRepo.Setup(r => r.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        List<ShuffleHistory>? saved = null;
+        _historyRepo.Setup(r => r.AddRangeAsync(It.IsAny<List<ShuffleHistory>>(), It.IsAny<CancellationToken>()))
+            .Callback<List<ShuffleHistory>, CancellationToken>((h, _) => saved = h);
+
+        var result = await _sut.ExecuteShuffleAsync(userId, request,
+            currentUserName: "Yo", currentUserLastName: "Mismo", currentUserEmail: "yo@test.com");
+
+        result.Shuffled.Should().BeTrue();
+        result.ParticipantCount.Should().Be(2);
+
+        saved.Should().NotBeNull();
+        saved!.Should().HaveCount(2);
     }
 
     private static List<Friend> CreateFriends(Guid userId, int count)

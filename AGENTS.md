@@ -1,21 +1,27 @@
-# GiftShuffle Backend
+﻿# GiftShuffle Backend
 
 Clean Architecture (.NET 10) API — Secret Santa / Amigo Invisible.
 
 ## Project structure
 
 ```
-GiftShuffle.Domain/             → Entities only (Friend, ShuffleHistory). Zero external packages.
-GiftShuffle.Application/        → Interfaces, DTOs (records), Service implementations.
-GiftShuffle.Infraestructure/    → EF Core SQLite, Identity (AppUser), MailKit, JWT, Repository impls.
-GiftShuffle.Api/                → Controllers, Program.cs (DI + middleware). (Folder renamed from GiftShuffle to GiftShuffle.Api)
+GiftShuffleBackend/
+├── GiftShuffle.Domain/             → Entities only (Friend, ShuffleHistory). Zero external packages.
+├── GiftShuffle.Application/        → Interfaces, DTOs (records), Service implementations.
+├── GiftShuffle.Infraestructure/    → EF Core SQLite, Identity (AppUser), MailKit, JWT, Repository impls.
+├── GiftShuffle.Api/                → Controllers, Program.cs (DI + middleware).
+├── tests/
+│   ├── GiftShuffle.Application.Tests/ → Unit tests (xUnit + Moq + FluentAssertions)
+│   └── GiftShuffle.Api.Tests/        → Integration tests (WebApplicationFactory + in-memory SQLite)
+└── GiftShuffle.slnx
 ```
 
 Dependency direction: `Api → Infrastructure → Application → Domain`
 
 ## Commands
 
-- `dotnet build GiftShuffle.slnx` — build all 4 projects (uses `.slnx` format, not `.sln`)
+- `dotnet build GiftShuffle.slnx` — build all 6 projects
+- `dotnet test GiftShuffle.slnx` — run all 36 tests
 - `dotnet run --project GiftShuffle.Api` — run API
 - SQLite DB auto-created on first run via `db.Database.EnsureCreated()`
 
@@ -24,7 +30,7 @@ Dependency direction: `Api → Infrastructure → Application → Domain`
 - `AppUser : IdentityUser<Guid>` (adds Name + LastName)
 - JWT tokens config in `appsettings.json` under `Jwt` section
 - Public: `POST /api/auth/register`, `POST /api/auth/login`
-- Protected (JWT required): all `/api/friends/*`, `POST /api/shuffle`
+- Protected (JWT required): all `/api/friends/*`, `POST /api/shuffle`, `DELETE /api/shuffle/history`
 
 ## API endpoints
 
@@ -37,10 +43,11 @@ Dependency direction: `Api → Infrastructure → Application → Domain`
 | PUT | /api/friends/{id} | JWT |
 | DELETE | /api/friends/{id} | JWT |
 | POST | /api/shuffle | JWT |
+| DELETE | /api/shuffle/history | JWT |
 
 ## Shuffle algorithm
 
-Fisher-Yates shuffle + circular rotation (nobody gives to self). Excludes any (giver, receiver) pair from `ShuffleHistory` to prevent repeats. Retries up to 100 attempts.
+Fisher-Yates shuffle + circular rotation (nobody gives to self). Excludes any (giver, receiver) pair from `ShuffleHistory` to prevent repeats. Retries with exclusions up to 100 attempts, then falls back to ignoring history. Sends emails in parallel with fault tolerance.
 
 ## DB
 

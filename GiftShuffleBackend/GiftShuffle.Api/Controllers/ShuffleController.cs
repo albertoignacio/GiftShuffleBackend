@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using GiftShuffle.Application.DTOs;
 using GiftShuffle.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -23,7 +23,25 @@ public class ShuffleController(IShuffleService shuffleService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ShuffleResponse>> ExecuteShuffle([FromBody] ShuffleRequest request, CancellationToken ct)
     {
-        var response = await shuffleService.ExecuteShuffleAsync(GetUserId(), request, ct);
+        string? name = null, lastName = null, email = null;
+        if (request.IncludeCurrentUser)
+        {
+            name = User.FindFirstValue(ClaimTypes.Name);
+            lastName = User.FindFirstValue("lastName");
+            email = User.FindFirstValue(ClaimTypes.Email);
+        }
+        var response = await shuffleService.ExecuteShuffleAsync(GetUserId(), request,
+            name, lastName, email, ct);
         return Ok(response);
+    }
+
+    [HttpDelete("history")]
+    [EndpointSummary("Limpia el historial de sorteos anteriores")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult> ClearHistory(CancellationToken ct)
+    {
+        await shuffleService.ClearHistoryAsync(GetUserId(), ct);
+        return Ok(new { message = "Historial limpiado" });
     }
 }
