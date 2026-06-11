@@ -1,4 +1,4 @@
-using GiftShuffle.Application.Interfaces;
+﻿using GiftShuffle.Application.Interfaces;
 using GiftShuffle.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,5 +18,12 @@ public class ShuffleHistoryRepository(AppDbContext context) : IShuffleHistoryRep
     {
         context.ShuffleHistories.AddRange(histories);
         await context.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        await context.ShuffleHistories
+            .Where(h => h.UserId == userId)
+            .ExecuteDeleteAsync(ct);
     }
 }

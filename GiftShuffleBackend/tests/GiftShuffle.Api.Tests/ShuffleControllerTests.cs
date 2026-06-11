@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using System.Net;
 using System.Text.Json;
 
@@ -77,6 +77,44 @@ public class ShuffleControllerTests : IClassFixture<CustomWebApplicationFactory>
         result.Shuffled.Should().BeTrue();
         result.ParticipantCount.Should().Be(4);
         result.GiftAmount.Should().Be(150m);
+    }
+
+    [Fact]
+    public async Task ExecuteShuffle_WithIncludeCurrentUser_ReturnsIncreasedCount()
+    {
+        var token = await RegisterAndLoginAsync();
+
+        var ids = new List<Guid>();
+        for (int i = 1; i <= 3; i++)
+        {
+            ids.Add(await CreateFriendAsync(token, $"Friend{i}"));
+        }
+
+        _client.WithToken(token);
+        var body = new { friendIds = ids, giftAmount = 100m, includeCurrentUser = true };
+        var response = await _client.PostAsync("/api/shuffle", body.ToJson());
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.ReadAsAsync<ShuffleResult>();
+        result.Shuffled.Should().BeTrue();
+        result.ParticipantCount.Should().Be(4);
+        result.GiftAmount.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task ClearHistory_WithoutAuth_ReturnsUnauthorized()
+    {
+        var response = await _client.DeleteAsync("/api/shuffle/history");
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task ClearHistory_WithAuth_ReturnsOk()
+    {
+        var token = await RegisterAndLoginAsync();
+        _client.WithToken(token);
+        var response = await _client.DeleteAsync("/api/shuffle/history");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     private record AuthResponse(string Token, string Name, string LastName, string Email);

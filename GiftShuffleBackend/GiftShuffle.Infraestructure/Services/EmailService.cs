@@ -1,4 +1,4 @@
-using GiftShuffle.Application.Interfaces;
+﻿using GiftShuffle.Application.Interfaces;
 using GiftShuffle.Infraestructure.Options;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Logging;
@@ -15,7 +15,7 @@ public class EmailService(IOptions<SmtpOptions> smtpOptions, ILogger<EmailServic
     {
         var message = new MimeMessage();
 
-        message.From.Add(new MailboxAddress("Gift Shuffle", _smtp.Username));
+        message.From.Add(new MailboxAddress("Amigo Invisible", _smtp.Username));
         message.To.Add(new MailboxAddress(toName, toEmail));
         message.Subject = "Tu amigo invisible ha sido asignado";
 
@@ -23,8 +23,8 @@ public class EmailService(IOptions<SmtpOptions> smtpOptions, ILogger<EmailServic
         {
             Text = $"Hola {toName}!\n\n" +
                    $"Te ha tocado regalarle a: {receiverName}\n" +
-                   $"Monto sugerido: \n\n" +
-                   "�Feliz intercambio!"
+                   $"Monto sugerido: ${giftAmount:F2}\n\n" +
+                   "¡Feliz intercambio!"
         };
 
         using var client = new SmtpClient();

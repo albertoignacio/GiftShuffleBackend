@@ -1,4 +1,4 @@
-using GiftShuffle.Domain.Entities;
+﻿using GiftShuffle.Domain.Entities;
 
 namespace GiftShuffle.Application.Interfaces;
 
@@ -7,4 +7,5 @@ public interface IShuffleHistoryRepository
 {
     Task<List<ShuffleHistory>> GetByUserIdAsync(Guid userId, CancellationToken ct = default);
     Task AddRangeAsync(List<ShuffleHistory> histories, CancellationToken ct = default);
+    Task DeleteByUserIdAsync(Guid userId, CancellationToken ct = default);
 }
