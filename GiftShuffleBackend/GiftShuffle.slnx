@@ -1,8 +1,12 @@
-﻿<Solution>
+<Solution>
   <Project Path="GiftShuffle.Application/GiftShuffle.Application.csproj" />
   <Project Path="GiftShuffle.Domain/GiftShuffle.Domain.csproj" />
   <Project Path="GiftShuffle.Infraestructure/GiftShuffle.Infraestructure.csproj" />
   <Project Path="GiftShuffle.Api/GiftShuffle.Api.csproj" />
-  <Project Path="tests/GiftShuffle.Application.Tests/GiftShuffle.Application.Tests.csproj" />
-  <Project Path="tests/GiftShuffle.Api.Tests/GiftShuffle.Api.Tests.csproj" />
+  <Project Path="tests/GiftShuffle.Api.Tests/GiftShuffle.Api.Tests.csproj">
+    <Build Solution="Debug|*" Project="false" />
+  </Project>
+  <Project Path="tests/GiftShuffle.Application.Tests/GiftShuffle.Application.Tests.csproj">
+    <Build Solution="Debug|*" Project="false" />
+  </Project>
 </Solution>
