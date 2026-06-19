@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using System.Net;
 using System.Text.Json;
 
@@ -16,7 +16,7 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task Register_WithValidData_ReturnsOkAndToken()
     {
-        var body = new { name = "Carlos", lastName = "Garcia", email = $"carlos{Guid.NewGuid():N}@test.com", password = "Pass123" };
+        var body = new { name = "Carlos", lastName = "Garcia", email = $"carlos{Guid.NewGuid():N}@test.com", password = "Pass123!!" };
 
         var response = await _client.PostAsync("/api/auth/register", body.ToJson());
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -30,7 +30,7 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
     public async Task Register_WithDuplicateEmail_ReturnsBadRequest()
     {
         var email = $"duplicate{Guid.NewGuid():N}@test.com";
-        var body = new { name = "A", lastName = "B", email, password = "Pass123" };
+        var body = new { name = "A", lastName = "B", email, password = "Pass123!!" };
 
         await _client.PostAsync("/api/auth/register", body.ToJson());
         var response = await _client.PostAsync("/api/auth/register", body.ToJson());
@@ -43,10 +43,10 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
     {
         var email = $"login{Guid.NewGuid():N}@test.com";
         await _client.PostAsync("/api/auth/register",
-            new { name = "Luis", lastName = "Perez", email, password = "Pass123" }.ToJson());
+            new { name = "Luis", lastName = "Perez", email, password = "Pass123!!" }.ToJson());
 
         var response = await _client.PostAsync("/api/auth/login",
-            new { email, password = "Pass123" }.ToJson());
+            new { email, password = "Pass123!!" }.ToJson());
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var auth = await response.ReadAsAsync<AuthResponse>();
@@ -58,7 +58,7 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
     {
         var email = $"badpass{Guid.NewGuid():N}@test.com";
         await _client.PostAsync("/api/auth/register",
-            new { name = "X", lastName = "Y", email, password = "Pass123" }.ToJson());
+            new { name = "X", lastName = "Y", email, password = "Pass123!!" }.ToJson());
 
         var response = await _client.PostAsync("/api/auth/login",
             new { email, password = "WrongPassword" }.ToJson());

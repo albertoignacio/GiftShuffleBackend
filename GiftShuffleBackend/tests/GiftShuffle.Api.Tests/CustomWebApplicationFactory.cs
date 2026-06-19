@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -24,7 +24,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                 ["Jwt:Audience"] = "TestAudience",
                 ["Jwt:ExpireMinutes"] = "60",
                 ["Logging:LogLevel:Default"] = "None",
-                ["Logging:LogLevel:Microsoft"] = "None"
+                ["Logging:LogLevel:Microsoft"] = "None",
+                ["RateLimiting:PermitLimit"] = "1000"
             });
         });
 
@@ -61,6 +62,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 public class StubEmailService : IEmailService
 {
     public Task SendAssignmentEmailAsync(string toEmail, string toName, string receiverName, decimal giftAmount, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task SendVerificationEmailAsync(string toEmail, string toName, string confirmationLink, CancellationToken ct = default)
     {
         return Task.CompletedTask;
     }

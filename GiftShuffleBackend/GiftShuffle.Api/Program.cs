@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using GiftShuffle.Application.Interfaces;
 using GiftShuffle.Application.Services;
 using GiftShuffle.Infraestructure.Data;
@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,9 +28,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddIdentityCore<AppUser>(options =>
 {
     options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 6;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = false;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
 })
 .AddRoles<IdentityRole<Guid>>()
 .AddEntityFrameworkStores<AppDbContext>()
@@ -55,6 +56,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddRateLimiter(options =>
+{
+    var permitLimit = builder.Configuration.GetValue<int>("RateLimiting:PermitLimit", 5);
+    options.AddFixedWindowLimiter("AuthPolicy", config =>
+    {
+        config.PermitLimit = permitLimit;
+        config.Window = TimeSpan.FromMinutes(1);
+        config.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -76,6 +90,7 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {
@@ -99,3 +114,5 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+

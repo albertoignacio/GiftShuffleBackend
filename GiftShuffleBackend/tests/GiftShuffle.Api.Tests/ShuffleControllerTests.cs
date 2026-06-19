@@ -17,10 +17,10 @@ public class ShuffleControllerTests : IClassFixture<CustomWebApplicationFactory>
     {
         var email = $"shuffle{Guid.NewGuid():N}@test.com";
         await _client.PostAsync("/api/auth/register",
-            new { name = "Test", lastName = "User", email, password = "Pass123" }.ToJson());
+            new { name = "Test", lastName = "User", email, password = "Pass123!!" }.ToJson());
 
         var loginResponse = await _client.PostAsync("/api/auth/login",
-            new { email, password = "Pass123" }.ToJson());
+            new { email, password = "Pass123!!" }.ToJson());
         var auth = await loginResponse.ReadAsAsync<AuthResponse>();
         return auth.Token;
     }
@@ -121,3 +121,4 @@ public class ShuffleControllerTests : IClassFixture<CustomWebApplicationFactory>
     private record FriendResponse(Guid Id, string Name, string LastName, string Email);
     private record ShuffleResult(bool Shuffled, int ParticipantCount, decimal GiftAmount);
 }
+
