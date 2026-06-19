@@ -65,6 +65,11 @@ public class StubEmailService : IEmailService
     {
         return Task.CompletedTask;
     }
+
+    public Task SendVerificationEmailAsync(string toEmail, string toName, string confirmationLink, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
 }
 
 public static class TestHelpers
@@ -85,5 +90,3 @@ public static class TestHelpers
         return client;
     }
 }
-
-

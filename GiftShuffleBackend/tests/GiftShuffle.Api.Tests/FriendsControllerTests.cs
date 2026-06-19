@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using System.Net;
 using System.Text.Json;
 
@@ -17,10 +17,10 @@ public class FriendsControllerTests : IClassFixture<CustomWebApplicationFactory>
     {
         var email = $"user{Guid.NewGuid():N}@test.com";
         await _client.PostAsync("/api/auth/register",
-            new { name = "Test", lastName = "User", email, password = "Pass123" }.ToJson());
+            new { name = "Test", lastName = "User", email, password = "Pass123!!" }.ToJson());
 
         var loginResponse = await _client.PostAsync("/api/auth/login",
-            new { email, password = "Pass123" }.ToJson());
+            new { email, password = "Pass123!!" }.ToJson());
         var auth = await loginResponse.ReadAsAsync<AuthResponse>();
         return auth.Token;
     }
