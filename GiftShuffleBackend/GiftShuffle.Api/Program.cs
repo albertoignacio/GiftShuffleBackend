@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using GiftShuffle.Application.Interfaces;
 using GiftShuffle.Application.Services;
 using GiftShuffle.Infraestructure.Data;
@@ -27,9 +27,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddIdentityCore<AppUser>(options =>
 {
     options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 6;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = false;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
 })
 .AddRoles<IdentityRole<Guid>>()
 .AddEntityFrameworkStores<AppDbContext>()
