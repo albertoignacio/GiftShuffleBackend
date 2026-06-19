@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -24,7 +24,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                 ["Jwt:Audience"] = "TestAudience",
                 ["Jwt:ExpireMinutes"] = "60",
                 ["Logging:LogLevel:Default"] = "None",
-                ["Logging:LogLevel:Microsoft"] = "None"
+                ["Logging:LogLevel:Microsoft"] = "None",
+                ["RateLimiting:PermitLimit"] = "1000"
             });
         });
 
@@ -84,3 +85,4 @@ public static class TestHelpers
         return client;
     }
 }
+

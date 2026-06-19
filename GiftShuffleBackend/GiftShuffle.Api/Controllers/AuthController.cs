@@ -1,12 +1,14 @@
-using GiftShuffle.Application.DTOs;
+﻿using GiftShuffle.Application.DTOs;
 using GiftShuffle.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace GiftShuffle.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
 [Tags("Auth")]
+[EnableRateLimiting("AuthPolicy")]
 public class AuthController(IAuthService authService) : ControllerBase
 {
     [HttpPost("register")]
@@ -20,7 +22,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     }
 
     [HttpPost("login")]
-    [EndpointSummary("Inicia sesi�n y devuelve un token JWT")]
+    [EndpointSummary("Inicia sesión y devuelve un token JWT")]
     [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
