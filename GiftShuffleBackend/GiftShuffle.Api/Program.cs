@@ -41,6 +41,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()!;
+        if (string.IsNullOrEmpty(jwt.Key) || jwt.Key.Length < 32)
+            throw new InvalidOperationException(
+                "JWT Key must be configured with at least 32 characters (256 bits). " +
+                "Run: dotnet user-secrets set \"Jwt:Key\" \"<your-256-bit-key>\"");
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -114,5 +118,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
 
 
